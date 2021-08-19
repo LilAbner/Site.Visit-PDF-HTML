@@ -1,0 +1,1687 @@
+--- 
+title: "Example site Visit Data"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [book.bib, packages.bib]
+biblio-style: apalike
+link-citations: yes
+description: "This is a test to see if Bookdown is a better way to present data for site visits. "
+---
+
+```{r include=FALSE}
+AgencyName <- "East Bay" 
+library(readxl)
+GrantDetails <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/GrantDetails.xlsx"))
+
+Clients <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/Clients.xlsx")) 
+
+
+homecaredetails <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/homecaredetails.xlsx"))
+
+gg2018 <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/2018.xlsx"))
+gg2019 <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/2019.xlsx"))
+gg2020 <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/2020.xlsx"))
+gg2021 <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/2021.xlsx"))
+
+
+Budgets <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/Budgets.xlsx"))
+
+Summary <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/Summary.xlsx"))
+
+appyear <- read_excel("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/appyearlist.xlsx")
+
+UnmetNEed <- read_excel(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/UnmetNEed.xlsx"))
+
+
+
+
+alldafchange1 <- read.csv(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/alldafchange1.csv"))
+allclientsdaf <- read.csv(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/allclientsdaf.csv"))
+
+
+
+allgovhchange1 <- read.csv(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/allgovhchange1.csv"))
+```
+
+
+```{r include=FALSE}
+detailschart <- read.csv(paste0("Z:/Program Assistants Folder/Site Visits/2021 Data for Visits/", AgencyName, "/Raw Data/detailschart.csv"))
+
+```
+
+# Clients Served
+
+<br><br>
+
+```{r Calculation, include=FALSE}
+library(stringr) 
+library(dplyr)
+library(lubridate)
+library(gt)
+library(readxl)
+
+
+names(GrantDetails) <- str_replace_all(names(GrantDetails), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+GrantDetails$Service <- str_replace(GrantDetails$Service, "[WM]", "")                          
+
+
+names(Clients) <- str_replace_all(names(Clients), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+
+clients1 <- Clients %>%
+  select(CC.ID, Homecare.Approval.Status)
+
+GrantsAll <- GrantDetails %>%
+  mutate( year = year(Report.Start)) %>%
+    select(year, CC.ID, App, Service, Service, Fund) %>%
+  merge(clients1) %>%
+    merge(appyear, all.x = TRUE) %>%
+  filter(Year >= 2018)
+
+yeartotal <- GrantsAll %>%
+  group_by(Year) %>%
+  summarize(UniqueCCID = n_distinct(CC.ID))
+
+yearhas1 <- GrantsAll %>%
+  group_by(Year) %>%
+  filter(Homecare.Approval.Status == "1") %>%
+  summarize(HAS1 = n_distinct(CC.ID))
+
+yearhas2 <- GrantsAll %>%
+  group_by(Year) %>%
+  filter(Homecare.Approval.Status == "2") %>%
+  summarize(HAS2 = n_distinct(CC.ID))
+yearhas3 <- GrantsAll %>%
+  group_by(Year) %>%
+  filter(Homecare.Approval.Status == "3") %>%
+  summarize(HAS3 = n_distinct(CC.ID))
+yearhasna <- GrantsAll %>%
+  group_by(Year) %>%
+  filter(Homecare.Approval.Status == "Not Eligible") %>%
+  summarize(HASNA = n_distinct(CC.ID))
+
+uniquetotal <- merge(yeartotal, yearhas1, all =TRUE)  %>% 
+  merge(yearhas2, all =TRUE) %>%
+    merge(yearhas3, all =TRUE) %>%
+    merge(yearhasna, all =TRUE)
+
+HCGrantsUnqiueCCID <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  summarize(UniqueCCID = n_distinct(CC.ID))
+
+HASHomecare1 <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  filter(Homecare.Approval.Status == "1") %>%
+  summarize(HAS1 = n_distinct(CC.ID)) 
+HASHomecare2  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  filter(Homecare.Approval.Status == "2") %>%
+  summarize(HAS2 = n_distinct(CC.ID))
+HASHomecare3  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  filter(Homecare.Approval.Status == "3") %>%
+  summarize(HAS3 = n_distinct(CC.ID)) 
+HASHomecareNA  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  filter(Homecare.Approval.Status == "Not Eligible") %>%
+  summarize(HASNA = n_distinct(CC.ID)) 
+HASHomecare <- merge(HCGrantsUnqiueCCID, HASHomecare1, all = TRUE) %>%
+  merge(HASHomecare2, all = TRUE ) %>%
+  merge(HASHomecare3, all = TRUE) %>%
+  merge(HASHomecareNA, all = TRUE)
+
+Fundtotal <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Fund == "GG13" | Fund == "GG14" | Fund == "GG15" | Fund == "GG16" | Fund == "GG17" | Fund == "GG18" |  Fund == "GG19"| Fund == "GG20"| Fund == "GG21"| Fund == "GG22") %>%
+  summarize(UniqueCCID = n_distinct(CC.ID)) 
+
+
+HASFund1 <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Fund == "GG13" | Fund == "GG14" | Fund == "GG15" | Fund == "GG16" | Fund == "GG17" | Fund == "GG18" |  Fund == "GG19"| Fund == "GG20"| Fund == "GG21"| Fund == "GG22") %>%
+  filter(Homecare.Approval.Status == "1") %>%
+  summarize(HAS1 = n_distinct(CC.ID)) 
+HASFund2  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Fund == "GG13" | Fund == "GG14" | Fund == "GG15" | Fund == "GG16" | Fund == "GG17" | Fund == "GG18" |  Fund == "GG19"| Fund == "GG20"| Fund == "GG21"| Fund == "GG22") %>%
+  filter(Homecare.Approval.Status == "2") %>%
+  summarize(HAS2 = n_distinct(CC.ID))
+HASFund3  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Fund == "GG13" | Fund == "GG14" | Fund == "GG15" | Fund == "GG16" | Fund == "GG17" | Fund == "GG18" |  Fund == "GG19"| Fund == "GG20"| Fund == "GG21"| Fund == "GG22") %>%
+  filter(Homecare.Approval.Status == "3") %>%
+  summarize(HAS3 = n_distinct(CC.ID)) 
+HASFundNA  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Fund == "GG13" | Fund == "GG14" | Fund == "GG15" | Fund == "GG16" | Fund == "GG17" | Fund == "GG18" |  Fund == "GG19"| Fund == "GG20"| Fund == "GG21"| Fund == "GG22") %>%
+  filter(Homecare.Approval.Status == "Not Eligible") %>%
+  summarize(HASNA = n_distinct(CC.ID)) 
+HASFund <- merge(Fundtotal, HASFund1, all = TRUE) %>%
+  merge(HASFund2, all = TRUE ) %>%
+  merge(HASFund3, all = TRUE) %>%
+  merge(HASFundNA, all = TRUE)
+
+AllHomecare <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel" | Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%
+  summarize(UniqueCCID = n_distinct(CC.ID)) 
+AllHomecareHAs1 <- GrantsAll %>%
+  group_by(Fund) %>%
+ filter(Service == "Personnel" | Service  == "Case Management Personnel" |
+          Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care ") %>% 
+  filter(Homecare.Approval.Status == "1") %>%
+  summarize(HAS1 = n_distinct(CC.ID)) 
+AllHomecareHAs2  <- GrantsAll %>%
+  group_by(Fund) %>%
+ filter(Service == "Personnel" | Service  == "Case Management Personnel" | 
+          Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care ") %>%  
+  filter(Homecare.Approval.Status == "2") %>%
+  summarize(HAS2 = n_distinct(CC.ID))
+AllHomecareHAs3  <- GrantsAll %>%
+  group_by(Fund) %>%
+ filter(Service == "Personnel" | Service  == "Case Management Personnel" | 
+          Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care ") %>% 
+  filter(Homecare.Approval.Status == "3") %>%
+  summarize(HAS3 = n_distinct(CC.ID)) 
+AllHomecareHAsNA  <- GrantsAll %>%
+  group_by(Fund) %>%
+ filter(Service == "Personnel" | Service  == "Case Management Personnel" | 
+          Service == "Chore/Housekeeper " | Service == "Personal/Nursing Care " | Service ==
+           "Exceptional Hours 15%") %>%  
+  filter(Homecare.Approval.Status == "Not Eligible") %>%
+  summarize(HASNA = n_distinct(CC.ID)) 
+AllHomecareCM <- merge(AllHomecare, AllHomecareHAs1, all = TRUE) %>%
+  merge(AllHomecareHAs2, all = TRUE ) %>%
+  merge(AllHomecareHAs3, all = TRUE) %>%
+  merge(AllHomecareHAsNA, all = TRUE)
+
+
+CMonly <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel") %>%
+  summarize(UniqueCCID = n_distinct(CC.ID)) 
+CMHAS1 <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel") %>%
+  filter(Homecare.Approval.Status == "1") %>%
+  summarize(HAS1 = n_distinct(CC.ID)) 
+CMHAS2  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel") %>%
+  filter(Homecare.Approval.Status == "2") %>%
+  summarize(HAS2 = n_distinct(CC.ID))
+CMHAS3  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel") %>%
+  filter(Homecare.Approval.Status == "3") %>%
+  summarize(HAS3 = n_distinct(CC.ID)) 
+CMHAS3na  <- GrantsAll %>%
+  group_by(Fund) %>%
+  filter(Service == "Personnel" | Service  == "Case Management Personnel") %>%
+  filter(Homecare.Approval.Status == "Not Eligible") %>%
+  summarize(HASNA = n_distinct(CC.ID)) 
+CMonlyall <- merge(CMonly, CMHAS1, all = TRUE) %>%
+  merge(CMHAS2, all = TRUE ) %>%
+  merge(CMHAS3, all = TRUE) %>%
+  merge(CMHAS3na, all = TRUE)
+```
+
+
+
+
+```{r include=FALSE}
+library(stringr) 
+library(dplyr)
+library(lubridate)
+library(gt)
+
+allgrants <- gt(uniquetotal) %>%
+  cols_label(Year = "Year", UniqueCCID = "Total", HAS1 = "HAS 1", HAS2 = "HAS 2", HAS3 = "HAS 3",  HASNA = "Not Eligible")  %>%
+  tab_header(title = "All Grants: Total Unique Clients", subtitle = NULL)  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Year, UniqueCCID)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Year, UniqueCCID, HAS1, HAS2, HAS3, HASNA))) %>%
+  fmt_missing(everything(), missing_text = "  ")
+  
+
+HASHomecarechart <- gt(HASHomecare)  %>%
+  cols_label(Fund = "Fund", UniqueCCID = "Total", HAS1 = "HAS 1", HAS2 = "HAS 2", HAS3 = "HAS 3",  HASNA = "Not Eligible")  %>%
+  tab_header(title = "Homecare (C/H and P/N): Unique Clients")  %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Fund, UniqueCCID)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Fund, UniqueCCID, HAS1, HAS2, HAS3, HASNA))
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ")
+
+AllHomecareCM <- gt(AllHomecareCM) %>%
+  cols_label(Fund = "Fund", UniqueCCID = "Total", HAS1 = "HAS 1", HAS2 = "HAS 2", HAS3 = "HAS 3",  HASNA = "Not Eligible") %>%
+  tab_header(title = "Homecare and Case Management: Unique Clients") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(columns = c(Fund, UniqueCCID)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Fund, UniqueCCID, HAS1, HAS2, HAS3, HASNA))
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") 
+
+
+
+HASFund <- gt(HASFund) %>%
+  cols_label(Fund = "Fund", UniqueCCID = "Total", HAS1 = "HAS 1", HAS2 = "HAS 2", HAS3 = "HAS 3",  HASNA = "Not Eligible") %>%
+  tab_header(title = "GG Only: Unique Clients") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#cd3341", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#cd3341", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#cd3341", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Fund, UniqueCCID)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#cd3341", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Fund, UniqueCCID, HAS1, HAS2, HAS3, HASNA))
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") 
+
+
+
+CMonlyall <- gt(CMonlyall) %>%
+  cols_label(Fund = "Fund", UniqueCCID = "Total", HAS1 = "HAS 1", HAS2 = "HAS 2", HAS3 = "HAS 3",  HASNA = "Not Eligible") %>%
+  tab_header(title = "Case Management: Unique Clients") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#50506D", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#50506D", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#50506D", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Fund, UniqueCCID)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#50506D", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Fund, UniqueCCID, HAS1, HAS2, HAS3, HASNA))
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") 
+
+
+```
+
+
+:::::: {style="display: flex;"}
+
+::: {}
+```{r echo=FALSE, message=FALSE}
+allgrants
+```
+```{r echo=FALSE, message=FALSE}
+HASHomecarechart
+```
+  
+:::
+
+::: {}
+
+
+
+
+:::
+
+
+::: {}
+
+
+```{r echo=FALSE, message=FALSE}
+HASFund
+```
+```{r echo=FALSE, message=FALSE}
+AllHomecareCM
+```
+
+
+:::
+
+::::
+
+\newpage
+
+
+# Client Details
+
+
+
+
+```{r include=FALSE}
+library(knitr)
+library(dplyr)
+library(reactable)
+library(readxl)
+library(tidyverse)
+names(Clients) <- str_replace_all(names(Clients), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+
+
+library(lubridate)
+clientinfo <- Clients %>%
+  select(CC.ID, Homecare.Approval.Status, Join.Date, Unable.To.Sign, Nursing.Home, Homecare.Waitlist,  Assisted.Living, Leave.Date, Leave.Reason)
+clientinfoleavedate <- clientinfo %>%
+  mutate(yearjoin = year(Join.Date), yearleave = year(Leave.Date)) %>%
+  group_by(Homecare.Approval.Status, yearleave, Leave.Reason) %>%
+  summarise(count = n_distinct(CC.ID)) %>%
+  ungroup()
+has1status <- clientinfoleavedate %>%
+  filter(Homecare.Approval.Status == 1) %>%
+  select(-Homecare.Approval.Status) %>%
+  pivot_wider(names_from = yearleave, values_from = count) %>%
+  rename("Leave Reason" = "Leave.Reason", "Active Clients" = "NA")
+has2status <- clientinfoleavedate %>%
+  filter(Homecare.Approval.Status == 2) %>%
+  select(-Homecare.Approval.Status) %>%
+  pivot_wider(names_from = yearleave, values_from = count) %>%
+  rename("Leave Reason" = "Leave.Reason", "Active Clients" = "NA")
+
+
+library(gt)
+has1status <- gt(has1status) %>%
+  tab_header(title = "# of HAS 1 Clients Leaving Program") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#cd3341", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") 
+has2status <- gt(has2status) %>%
+  tab_header(title = "# of HAS 2 Clients Leaving Program") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") 
+
+activeclients <- clientinfo %>%
+  filter(is.na(Leave.Reason)) %>%
+  select(CC.ID, Homecare.Approval.Status, Homecare.Waitlist,
+ Nursing.Home, Assisted.Living) %>%
+  mutate(Homecare.Waitlist = ifelse(Homecare.Waitlist == "No", 0, 1), Nursing.Home = ifelse(Nursing.Home == "No", 0, 1), Assisted.Living = ifelse(Assisted.Living == "No", 0, 1) ) %>%
+  
+  group_by(Homecare.Approval.Status) %>%
+  summarise(Homecare.Waitlistsum = sum(Homecare.Waitlist), Homecare.Waitlistmean = mean(Homecare.Waitlist), Nursing.Homesum = sum(Nursing.Home), Nursing.Homemean = mean(Nursing.Home), Assisted.Livingsum = sum(Assisted.Living), Assisted.Livingmean = mean(Assisted.Living)) %>%
+  mutate(Homecare.Approval.Status = ifelse(Homecare.Approval.Status == 1, "HAS 1", 
+                                           ifelse(Homecare.Approval.Status == 2, "HAS 2", "HAS 3")))
+
+names(GrantDetails) <- str_replace_all(names(GrantDetails), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+GrantDetails$Service <- str_replace(GrantDetails$Service, "[WM]", "")
+```
+
+
+```{r include=FALSE}
+names(Clients) <- str_replace_all(names(Clients), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+```
+
+
+```{r include=FALSE}
+GrantsAll <- GrantDetails %>%
+    select(CC.ID, App, Service, Service, Fund)
+```
+
+
+```{r include=FALSE}
+newclients <- Clients %>%
+  filter(Join.Date >= as.Date("2020-01-01")) %>%
+  select(CC.ID, Approval.Status,  'Homecare.Approval.Status', Join.Date, Homecare.Waitlist, Other.Services.Waitlist) %>%
+  mutate(Homecare.Waitlist = ifelse(Homecare.Waitlist == "No", 0, 1), Other.Services.Waitlist = ifelse(Other.Services.Waitlist == "No", 0, 1)) %>%
+  group_by(Homecare.Approval.Status, Approval.Status) %>%
+  summarise(Numberofnewclients = n_distinct(CC.ID), Homecare.Waitlist = sum(Homecare.Waitlist), Other.Services.Waitlist = sum(Homecare.Waitlist)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = Approval.Status, values_from = Numberofnewclients, values_fill = 0)
+
+newclients2 <- Clients %>%
+    filter(Join.Date >= as.Date("2020-01-01")) %>%
+  select(CC.ID, Approval.Status, Homecare.Waitlist, Other.Services.Waitlist) %>%
+    mutate(Homecare.Waitlist = ifelse(Homecare.Waitlist == "No", 0, 1), Other.Services.Waitlist = ifelse(Other.Services.Waitlist == "No", 0, 1)) %>%
+    group_by( Approval.Status) %>%
+  summarise(Numberofnewclients = n_distinct(CC.ID), Homecare.Waitlist = sum(Homecare.Waitlist), Other.Services.Waitlist = sum(Homecare.Waitlist))%>%
+  ungroup()%>%
+    pivot_wider(names_from = Approval.Status, values_from = Numberofnewclients, values_fill = 0) %>%
+  mutate(Homecare.Approval.Status = 
+           "Total") 
+newclients <- newclients %>%
+  rbind(newclients2)
+```
+
+
+
+```{r include=FALSE}
+GrantsAll <- GrantDetails %>%
+    select(CC.ID, App, Service, Service, Fund)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+eapclientsonly <- Clients %>%
+  filter(Join.Date >= as.Date("2020-01-01")) %>%
+  merge(GrantsAll, all.x = TRUE) %>%
+    select(CC.ID, Service) %>% 
+  mutate(Service = ifelse(Service == "EAP", "EAP", "NonEAP"))
+
+eapclientsonly%>%
+  unique() %>%
+  mutate(type = 1) %>%
+  pivot_wider(names_from = Service, values_from = type)%>%
+  mutate(bothtypes = ifelse(!is.na(EAP) & !is.na('NonEAP'),  1, 0)) %>%
+  filter(EAP == 1 & bothtypes == 0) %>%
+  summarise(clients = n())
+```
+
+
+```{r include=FALSE}
+newclients <- gt(newclients) %>%
+  cols_label(Homecare.Approval.Status = "HAS Level", Approved = "Approved Client(s)", Homecare.Waitlist = "On Homecare Waitlist", Other.Services.Waitlist = "On Other Waitlist(s)") %>%
+  tab_header(title = "All Clients added in 2020") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ")
+
+activeclients <- gt(activeclients) %>%
+    cols_label(Homecare.Approval.Status = "Homecare Approval Status", Homecare.Waitlistsum = "Count of Clients on HC Waitlist", Homecare.Waitlistmean = "% of Clients on HC Waitlist", Nursing.Homesum = "Count of Clients in Nursing Homes", Nursing.Homemean = "% of Clients in Nursing Homes",  Assisted.Livingsum = "Count of Clients in Assisted Living", Assisted.Livingmean = "% of Clients in Assisted Living") %>%
+  tab_header(title = "Count of Clients (As of June 2021)") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#50506D", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+  fmt_percent(columns = c(Homecare.Waitlistmean, Nursing.Homemean, Assisted.Livingmean))
+```
+
+
+
+
+## HAS 1 and HAS 2 Leave Reasons
+
+```{r echo=FALSE}
+has1status
+```
+
+
+```{r echo=FALSE}
+has2status
+```
+
+\newpage
+
+## Active Client Info
+<br><br>
+
+```{r echo=FALSE}
+activeclients
+```
+
+
+\newpage
+
+####  New Clients
+<br><br>
+
+```{r echo=FALSE}
+newclients
+```
+
+\newpage
+
+
+
+# Homecare Information
+
+
+```{r include=FALSE}
+library(dplyr)
+library(reactable)
+library(readxl)
+library(tidyverse)	
+
+library(readxl)
+names(homecaredetails) <- str_replace_all(names(homecaredetails), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+homecarecost <- homecaredetails %>%
+    group_by(Service, Rate) %>%
+  summarise(count = n()) %>%
+group_by(Service) %>%
+  mutate(percentage = count/sum(count)) %>%
+  ungroup()
+
+Ch <- homecarecost %>%
+  filter(Service == "Chore/Housekeeper W") %>%
+  select(-Service)
+PN <- homecarecost %>%
+  filter(Service == "Personal/Nursing Care W") %>%
+    select(-Service)
+
+Ch <- gt(Ch) %>%
+  cols_label(Rate = "Rate", count = "Total # of Hours", percentage = "%") %>%
+  tab_header(title = "Chore/Housekeeping Rates") %>%
+tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_percent(columns = c(percentage)) %>%
+  fmt_currency(columns = c(Rate))
+
+PN <- gt(PN) %>%
+  
+  tab_header(title = "Personal/Nursing Rates") %>%
+    cols_label(Rate = "Rate", count = "Total # of Hours", percentage = "%") %>%
+
+tab_style(
+    style = list(
+      cell_fill(color = "#74a2ae", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_percent(columns = c(percentage)) %>%
+  fmt_currency(columns = c(Rate))
+```
+
+
+
+:::::: {style="display: flex;"}
+
+::: {}
+
+
+```{r echo=FALSE}
+Ch
+```
+
+:::
+
+::: {}
+
+
+
+
+:::
+
+::: {}
+
+:::
+
+::: {}
+
+
+
+
+:::
+
+::: {}
+
+
+```{r echo=FALSE}
+PN
+```
+
+<br><br>
+
+:::
+
+::::
+
+\newpage
+
+# MAF and DAF Details
+
+
+
+```{r include=FALSE}
+library(knitr)
+library(dplyr)
+library(reactable)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+
+
+
+names(Clients) <- str_replace_all(names(Clients), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+names(UnmetNEed)  <- str_replace_all(names(UnmetNEed), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+
+
+carere <- Clients %>%
+  select(CC.ID, Care.Received.Via) %>%
+  rename("CCID" = CC.ID)
+
+
+alldafchangesum <- alldafchange1 %>%
+  select(CCID, Start.Date, Diagnostic.Score, Functionality.Level) %>%
+  mutate(Start.Date = parse_date_time(Start.Date, orders = "d-b-Y", locale = "us" )) %>%
+  arrange(CCID, Start.Date) %>%
+  mutate(sameccid = ifelse(CCID == lag(CCID), 1, 0)) %>%
+  mutate(timebetween = ifelse(sameccid == 1, interval(lag(Start.Date), Start.Date), 0))%>%
+  mutate(timebetween = na_if(timebetween, 0), bymonth = as.period(timebetween)/months(1)) %>%
+  filter(Start.Date >= as.Date("2017-01-01")) %>%
+  mutate(dafupdatewith18 = ifelse(bymonth <= 18, 1, 0))
+alldafchangesumfunc <- alldafchangesum %>%
+  group_by(Functionality.Level) %>%
+  summarise(bymonthmean = mean(bymonth, na.rm = TRUE), dafupdatesmean = mean(dafupdatewith18, na.rm = TRUE) )
+alldafchangesumtotal <- alldafchangesum %>%
+    summarise(bymonthmean = mean(bymonth, na.rm = TRUE), dafupdatesmean = mean(dafupdatewith18, na.rm = TRUE) ) %>%
+  mutate(Functionality.Level = "Total") %>%
+  rbind(alldafchangesumfunc) %>%
+  filter(Functionality.Level != 1)
+
+alldafchange1 <- alldafchange1 %>%
+  select(CCID, Start.Date, Diagnostic.Score, Functionality.Level) %>%
+  mutate(Start.Date = parse_date_time(Start.Date, orders = "d-b-Y", locale = "us" )) %>%
+  arrange(CCID, Start.Date) %>%
+  mutate(sameccid = ifelse(CCID == lag(CCID), 1, 0)) %>%
+  mutate(timebetween = ifelse(sameccid == 1, interval(lag(Start.Date), Start.Date), 0))%>%
+  mutate(timebetween = na_if(timebetween, 0), bymonth = as.period(timebetween)/months(1)) %>%
+  filter(Start.Date >= as.Date("2017-01-01"))
+mindafchange <- alldafchange1 %>%
+  group_by(CCID) %>%
+  mutate(minstartdate = min(Start.Date)) %>%
+  mutate(minstartdatesame = ifelse(Start.Date == minstartdate, 1, 0 )) %>%
+  mutate(bymonth = ifelse(minstartdatesame == 1, NA, bymonth)) %>%
+  ungroup() %>%
+  mutate(averagetime = mean(bymonth, na.rm = TRUE)) %>%
+  group_by(CCID) %>%
+  mutate(averagetimebyccid = mean(bymonth, na.rm = TRUE)) %>%
+  select(-sameccid, -timebetween, -minstartdate, -minstartdatesame)
+
+
+unmetneed <- UnmetNEed %>%
+  select(CCID, Weekly.Calculated.Unmet.Need.hours)
+
+allgovchange <- allgovhchange1 %>%
+  mutate(Start.Date = parse_date_time(Start.Date, orders = "d-b-Y", locale = "us" )) %>%
+  filter(Start.Date >= as.Date("01-01-2018")) %>%
+  rename("GovDate" = "Start.Date", "GovEntry"= "Value" ) %>%
+  select(GovDate, GovEntry, CCID)
+
+allclientsdaf <- allclientsdaf %>%
+  select(CCID, avehours, MAF.Date, MAF.105Plus.Date, AllowedHours, Functionality.Level) %>%
+  merge(mindafchange, all.y =   TRUE) %>%
+  mutate(MAF.Date = ifelse(is.na(MAF.Date), " ",  MAF.Date)) %>%
+  mutate(MAF.105Plus.Date = ifelse(is.na(MAF.105Plus.Date), " ",
+                                         MAF.105Plus.Date )) %>%
+  merge(carere, all.x = TRUE) %>%
+  merge(unmetneed, all.x= TRUE) %>%
+  mutate(Care.Received.Via = ifelse(is.na(Care.Received.Via), "Not Entered", Care.Received.Via))%>%
+  mutate(Weekly.Calculated.Unmet.Need.hours = ifelse(is.na(Weekly.Calculated.Unmet.Need.hours), 0, Weekly.Calculated.Unmet.Need.hours))
+```
+
+
+```{r include=FALSE}
+allclientsdaf1 <- allclientsdaf %>%
+  mutate(avehours = ifelse(is.na(avehours), 0, avehours), AllowedHours = ifelse(is.na(AllowedHours), 0, AllowedHours)) %>%
+  mutate(combo= Weekly.Calculated.Unmet.Need.hours + avehours) %>%
+  mutate(delta = AllowedHours - avehours) %>%
+    mutate(delta = ifelse(avehours == 0, NA, delta), avehours = ifelse(avehours == 0, NA, avehours), AllowedHours = ifelse(AllowedHours == 0, NA, AllowedHours)) %>%
+  select(-combo) %>%
+  merge(allgovchange, all.y =   TRUE) 
+```
+
+
+```{r include=FALSE}
+data <- unique(allclientsdaf1[, c("CCID", "avehours", "AllowedHours", "delta", "Weekly.Calculated.Unmet.Need.hours", "averagetimebyccid", "MAF.Date", "MAF.105Plus.Date", "Care.Received.Via")]) %>%
+  mutate(avehours = round(avehours, 2), averagetimebyccid = round(averagetimebyccid, 2), delta =round(delta, 2)) %>%
+  filter(!is.na(avehours)) %>%
+  mutate(Care.Received.Via = ifelse(Care.Received.Via == "Private Pay Reimbursement", "Private Pay",
+                                    ifelse(Care.Received.Via == "Homecare vendor", "Vendor",Care.Received.Via)))
+```
+
+
+```{r include=FALSE}
+allclientsdafdetails1 <- allclientsdaf1 %>%
+select(CCID, Start.Date, Functionality.Level, Diagnostic.Score, bymonth, GovDate, GovEntry) %>%
+  mutate(duration =  difftime(Start.Date, GovDate, units = "weeks") )  %>%
+  group_by(CCID, Start.Date) %>%
+  mutate(duration = abs(duration), minduration = min(duration)) %>%
+  mutate(keep = ifelse(duration == minduration, 1, 0)) %>%
+           filter(keep == 1) %>%
+  group_by(CCID) %>%
+  arrange(GovDate) %>%
+  mutate(sameses = ifelse(GovDate == lag(GovDate), 1, 0)) %>%
+  ungroup() %>%
+  mutate(GovDate = as.character(GovDate))  %>%
+  mutate(sameses = ifelse(is.na(sameses), 0, sameses)) %>%
+  mutate(GovDate = ifelse(sameses ==1, "", GovDate), GovEntry = ifelse(sameses ==1, "", GovEntry))
+```
+
+
+```{r include=FALSE}
+
+allclientsdafdetails <- allclientsdafdetails1 %>%
+  select(-duration, -minduration, -keep, -sameses) %>%
+    mutate(Start.Date = as.Date(Start.Date), bymonth = round(bymonth, 2), bymonth = as.character(ifelse(is.na(bymonth), "  ", bymonth))) 
+
+
+```
+
+
+
+
+```{r include=FALSE}
+detailschartfunc <- detailschart %>%  
+  group_by(Functionality.Level) %>%
+  summarise(hasmafcount = sum(hasmaf, na.rm = TRUE), hasmafmean = mean(hasmaf, na.rm = TRUE), hasmafpluscount = sum(hasmafplus, na.rm = TRUE), hasmafplusmean = mean(hasmafplus, na.rm = TRUE)) 
+detailscharttotal <- detailschart %>%  
+  summarise(hasmafcount = sum(hasmaf, na.rm = TRUE), hasmafmean = mean(hasmaf, na.rm = TRUE), hasmafpluscount = sum(hasmafplus, na.rm = TRUE), hasmafplusmean = mean(hasmafplus, na.rm = TRUE))  %>%
+    mutate(Functionality.Level = "Total") %>%
+  rbind(detailschartfunc)
+
+
+
+summarychart <- detailscharttotal %>%
+  merge(alldafchangesumtotal)
+```
+
+
+
+```{r include=FALSE}
+summarychartgt <- summarychart %>%
+gt(uniquetotal) %>%
+  cols_label(Functionality.Level = "Care Level", hasmafcount = "# with MAF", hasmafmean = "% with MAF", hasmafpluscount = "# with MAF+", hasmafplusmean = "% with MAF+",  bymonthmean = "Ave. Months between DAF Updates", dafupdatesmean = "% of reassessments within 18 months")  %>%
+  tab_header(title = "Summary of DAF and MAF by Care Level", subtitle = NULL)  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .35), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .15), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .25), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns  = everything())) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+  fmt_percent(columns = c(hasmafmean, hasmafplusmean, dafupdatesmean), decimals = 0) %>%
+  fmt_number(columns = c(bymonthmean), decimals = 2)
+```
+
+
+
+```{r include=FALSE}
+allclientsdaf <- reactable(data, filterable = TRUE, columns = list(
+  CCID = colDef(name = "CC ID"),
+  avehours = colDef(name = "Average HC Hours per Week", filterable = FALSE),
+  AllowedHours = colDef(name = "Allowed Hours", filterable = FALSE),
+  Weekly.Calculated.Unmet.Need.hours = colDef(name = "Unmet Need", filterable = FALSE),
+    delta = colDef(name = "Allowed - Ave Hrs", filterable = FALSE),
+  MAF.Date = colDef(name = "MAF if Care Level 4+", filterable = FALSE),
+  MAF.105Plus.Date = colDef(name = "MAF+ if Care Level 6", filterable = FALSE),
+  averagetimebyccid = colDef(name = "Ave. Months between DAF Updates", filterable = FALSE),
+  Care.Received.Via = colDef(name = "Care Via:", filterable = FALSE)), defaultPageSize = 5,
+
+  details = function(index)
+     {
+  allclientsdaf_data <- allclientsdafdetails[allclientsdafdetails$CCID == data$CCID[index], ]
+  htmltools::div(style = "padding: 16px",
+    reactable(allclientsdaf_data, outlined = TRUE, borderless = TRUE, theme = reactableTheme(
+            cellStyle = list(display = "flex", flexDirection = "column", justifyContent = "bottom")
+          ), sortable = FALSE,  defaultSorted = list(Start.Date = "desc"), columns = list(
+      CCID = colDef(name = "CC ID", show = FALSE), 
+      Start.Date = colDef(name = "DAF Date", defaultSortOrder = "desc"), 
+      Diagnostic.Score = colDef(name = "Diagnostic Score"),
+      Functionality.Level = colDef(name = "Functionality Level"),
+            GovDate = colDef(name = "Date Gov Hour Entered"), 
+      GovEntry = colDef(name = "Gov Hour Entry"), 
+      bymonth = colDef(name = "# of Months between DAF Update", html = TRUE, align =  "center", cell  = JS("function(cellInfo) {
+      return  '<br>'+  cellInfo.value
+      } " )
+    )
+  )
+  )
+  )
+}
+)
+
+```
+
+
+
+
+```{r echo=FALSE}
+summarychartgt
+```
+<br><br>
+
+```{r echo=FALSE}
+allclientsdaf
+```
+<br><br>
+
+# GG Grants GG20 to GG22
+
+
+
+```{r include=FALSE}
+library(dplyr)
+library(tidyverse)
+library(stringr) 
+library(dplyr)
+library(lubridate)
+library(gt)
+
+allgrants <- gg2019 %>%
+  rbind(gg2018) %>%
+  rbind(gg2020) %>%
+  rename("App" = "App #") %>%
+      merge(appyear) 
+names(allgrants) <- str_replace_all(names(allgrants), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+```
+
+
+```{r include=FALSE}
+names(gg2018) <- str_replace_all(names(gg2018), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+
+gg2018 <- gg2018 %>%
+    mutate(Service = ifelse(Service == "Medical Equipment O", "Medical Equipment", 
+                          ifelse(Service == "Medicine O", "Medicine",   
+                                         ifelse(Service == "Chore/Housekeeper M", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care M", "Personal/Nursing Care", 
+                                                ifelse(Service == "Chore/Housekeeper W", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care W", "Personal/Nursing Care",
+                                                ifelse(Service == "Personnel", "Case Management Personnel", Service)))))))) %>%
+  select(Service, Service.Type, CC.grant, Spent.up.to.date, Required.match, Agency.contribution) %>%
+  filter(Service != "EAP") %>%
+  mutate(Service.Type = ifelse(Service.Type != "Administrative Overhead" & Service.Type != "Homecare", "Supplemental Services", Service.Type), Service.Type = ifelse(Service == "Case Management Personnel", "Case Management", Service.Type))
+
+GG20graph <- gg2018 %>% 
+  gt(groupname_col = "Service.Type", rowname_col = "Service"	) %>%
+  cols_label(Service = "Service Types", CC.grant = "CC Grant Amount", Spent.up.to.date = "Agency Spend", Required.match = "Required Match",  Agency.contribution = "Agency Contr." )  %>%
+  tab_header(title = "2018 - GG20")  %>%
+    fmt_currency(columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution)
+                 ) %>%
+
+  grand_summary_rows(
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      'Grand Total' = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>%
+  summary_rows(
+    groups = TRUE,
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      Total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>% tab_options(column_labels.background.color = "#7d7d9f",
+              row_group.background.color = "#cfcfdc",
+              grand_summary_row.background.color = "#717197", 
+  ) %>%
+    tab_style(
+    style = list(
+    weight = "bold"),
+    locations = cells_summary(groups = everything(), columns = everything(),
+  rows = 1
+    )
+  ) %>%
+  tab_options(container.height = 600, container.overflow.y = TRUE, table.width = pct(100))
+
+
+```
+
+
+
+
+
+```{r include=FALSE}
+names(gg2019) <- str_replace_all(names(gg2019), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+```
+
+
+```{r include=FALSE}
+gg2019 <- gg2019 %>% 
+  mutate(Service = ifelse(Service == "Medical Equipment O", "Medical Equipment", 
+                          ifelse(Service == "Medicine O", "Medicine",   
+                                  ifelse(Service == "Chore/Housekeeper M", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care M", "Personal/Nursing", 
+                                                ifelse(Service == "Chore/Housekeeper W", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care W", "Personal/Nursing",
+                                                ifelse(Service == "Personnel", "Case Management Personnel", Service)))))))) %>%
+  select(Service, CC.grant, Service.Type, Spent.up.to.date, Required.match, Agency.contribution) %>%
+  filter(Service != "EAP") %>%
+    mutate(Service.Type = ifelse(Service.Type != "Administrative Overhead" & Service.Type != "Homecare", "Supplemental Services", Service.Type), Service.Type = ifelse(Service == "Case Management Personnel", "Case Management", Service.Type)) %>%
+
+  ungroup()
+
+names(gg2020) <- str_replace_all(names(gg2020), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+gg2020 <- gg2020 %>% 
+  mutate(Service = ifelse(Service == "Medical Equipment O", "Medical Equipment", 
+                          ifelse(Service == "Medicine O", "Medicine",   
+                                  ifelse(Service == "Chore/Housekeeper M", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care M", "Personal/Nursing Care", 
+                                                ifelse(Service == "Chore/Housekeeper W", "Chore/Housekeeper",
+                                         ifelse(Service == "Personal/Nursing Care W", "Personal/Nursing Care",
+                                                ifelse(Service == "Personnel", "Case Management Personnel", Service)))))))) %>%
+  select(Service, CC.grant, Service.Type, Spent.up.to.date, Required.match, Agency.contribution) %>%
+    mutate(Service.Type = ifelse(Service.Type != "Administrative Overhead" & Service.Type != "Homecare", "Supplemental Services", Service.Type), Service.Type = ifelse(Service == "Case Management Personnel", "Case Management", Service.Type)) %>%
+
+  ungroup()
+
+
+library(dplyr)
+library(tidyverse)
+library(stringr) 
+library(dplyr)
+library(lubridate)
+library(gt)
+GG22graph <-  gg2020 %>%
+    gt(groupname_col = "Service.Type", rowname_col = "Service"	) %>%
+  cols_label(Service = "Service Types", CC.grant = "CC Grant Amount", Spent.up.to.date = "Agency Spend", Required.match = "Required Match",  Agency.contribution = "Agency Contr." )  %>%
+  tab_header(title = "2020 - GG22")  %>%
+  fmt_currency(columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution)
+                 ) %>%
+
+  grand_summary_rows(
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      'Grand Total' = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>%
+  summary_rows(
+    groups = TRUE,
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      Total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>% tab_options(column_labels.background.color = "#8d83ce",
+              row_group.background.color = "#a9a1da",
+              grand_summary_row.background.color = "#7669c4", 
+  ) %>%
+    tab_style(
+    style = list(
+    weight = "bold"),
+    locations = cells_summary(groups = everything(), columns = everything(),
+  rows = 1
+    )
+  ) %>%
+  tab_options(container.height = 600, container.overflow.y = TRUE, table.width = pct(100))
+
+
+GG21graph <- gg2019 %>% 
+    gt(groupname_col = "Service.Type", rowname_col = "Service"	) %>%
+  cols_label(Service = "Service Types", CC.grant = "CC Grant Amount", Spent.up.to.date = "Agency Spend", Required.match = "Required Match",  Agency.contribution = "Agency Contr." )  %>%
+  tab_header(title = "2019 - GG21")  %>%
+  fmt_currency(columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution)
+                 ) %>%
+
+  grand_summary_rows(
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      'Grand Total' = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>%
+  summary_rows(
+    groups = TRUE,
+    columns = c(CC.grant, Spent.up.to.date, Required.match, Agency.contribution),
+    fns = list(
+      Total = ~sum(., na.rm = TRUE)),
+    formatter = fmt_currency
+    )  %>% tab_options(column_labels.background.color = "#98bac3",
+              row_group.background.color = "#a6c3cb",
+              grand_summary_row.background.color = "#7aa6b1", 
+  ) %>%
+    tab_style(
+    style = list(
+    weight = "bold"),
+    locations = cells_summary(groups = everything(), columns = everything(),
+  rows = 1
+    )
+  ) %>%
+  tab_options(container.height = 600, container.overflow.y = TRUE,     table.width = pct(100))
+
+library(scales)
+
+allgrantschart <- allgrants %>%
+      mutate(Service.Type = ifelse(Service.Type != "Administrative Overhead" & Service.Type != "Homecare", "Supplemental Services", Service.Type), Service.Type = ifelse(Service == "Case Management Personnel", "Case Management", Service.Type)) %>%
+
+      group_by(Service.Type, Year) %>%
+  summarise(CC.grant = sum(CC.grant)) %>%
+group_by(Year) %>%
+  mutate(percentage = CC.grant/sum(CC.grant))%>%
+  arrange(Year, desc(Service.Type)) %>%
+  group_by(Year) %>%
+    mutate(label_y = cumsum(CC.grant) - .5 * CC.grant) %>%
+
+    ggplot(aes(x=Year, y=CC.grant, fill = Service.Type)) +
+  
+  geom_bar(stat="identity")  +
+  scale_fill_manual("Service Type", values = c("Homecare" = "#749dae",  "Supplemental Services" = "#465952", "Case Management" = "#5c1a33", "Administrative Overhead" = "#5445b1")) +
+  theme_minimal() +
+    theme(axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank()) +
+      xlab("") +
+        ylab("") +
+  geom_text(aes(y = label_y, label = percent(percentage)), color="white", ) +
+scale_y_continuous(labels=scales::dollar_format()) +
+     theme(plot.title = element_text(color = "#5c1a33", size = 14, face = "bold",hjust = 0.5))
+
+```
+
+<br><br>
+
+
+
+## Comparison by Year
+
+```{r echo=FALSE}
+allgrantschart
+```
+
+
+\newpage
+
+
+
+
+## 2020
+
+```{r echo=FALSE}
+GG22graph
+```
+<br><br>
+\newpage
+
+## 2019
+
+```{r echo=FALSE}
+GG21graph
+```
+<br><br>
+\newpage
+
+## 2018
+
+```{r echo=FALSE}
+GG20graph
+```
+
+<br><br>
+\newpage
+
+
+# All Grants 2017-2021
+
+
+
+```{r include=FALSE}
+library(gt)
+grantslist <- Summary
+names(grantslist) <- str_replace_all(names(grantslist), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+amountspent1 <- Budgets %>%
+  mutate(Amount = gsub("\\.00", "", Amount), Amount = gsub("\\,", "", Amount)) %>%
+  mutate(Amount = as.numeric(Amount))
+names(amountspent1) <- str_replace_all(names(amountspent1), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+amountspent1 <- amountspent1 %>%
+  mutate(Amount = as.numeric(Amount)) %>%
+  mutate(Year = year(End.Date)) %>%
+  group_by(Fund, App) %>%
+    summarise(Amount = sum(Amount)) %>%
+  mutate(type = "GrantTotal")
+  
+  
+grantslistall <- grantslist %>% 
+  mutate(type = "Breakdown") %>%
+  merge(amountspent1, all = TRUE) %>%
+  merge(appyear, all.x = TRUE)
+                     
+
+
+grantslistallcurrent <- grantslistall %>%
+  filter(Year > 2016 & type == "GrantTotal") 
+
+grantslistallcurrentsum <- grantslistallcurrent %>%
+  select(Year, App, Fund, Amount) %>%
+  arrange(Year, Fund)
+  
+grantslistallcurrenttotal <- grantslistallcurrent %>%
+  group_by(Year) %>%
+  summarise(Amount = sum(Amount))
+
+grantslistallold  <- grantslistall %>%
+  filter(Year >= 2016 & type == "GrantTotal") 
+
+grantslistalloldsum <- grantslistallold %>%
+  select(Year, App, Fund, Amount)
+
+grantslistalloldtotal <- grantslistallold %>%
+  group_by(Year) %>%
+  summarise(Amount = sum(Amount))
+
+grantslistallcurrentsumgraph <- gt(grantslistallcurrentsum) %>%
+  cols_label(Year = "Year", App = "App Number", Fund = "Fund", Amount = "Grant Amount")  %>%
+  tab_header(title = "All Grants Details")  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5c1a33", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#5c1a33", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5c1a33", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Year)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5c1a33", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Year, App, Fund, Amount))) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_currency(columns = c(Amount))
+
+
+grantslistallcurrenttotalgraph <- gt(grantslistallcurrenttotal) %>%
+  cols_label(Year = "Year", Amount = "Grant Amount")  %>%
+  tab_header(title = "By Year")  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Year)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Year, Amount))) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_currency(columns = c(Amount))
+
+
+```
+
+
+
+```{r include=FALSE}
+library(ggplot2)
+
+grantsnewerchart <- grantslistall %>%
+  filter(Year >= 2017) %>%
+  filter(type != "GrantTotal") %>%
+  ggplot(aes(x=Year, y=Amount, fill = Master.Fund)) +
+  geom_bar(stat="identity")  +
+  scale_fill_manual("Fund", values = c("GG" = "#5445b1", "WF" = "#749dae", "SO" = "#5c1a33", "UROEAP" ="#f7dc6a", "LAND" = "#465952")) +
+  theme_minimal() +
+    theme(axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank()) +
+  ggtitle(label =  "All Grants") +
+      xlab("") +
+        ylab("") +
+
+    scale_y_continuous(labels=scales::dollar_format())  +
+    theme(plot.title = element_text(color = "#5c1a33", size = 14, face = "bold",hjust = 0.5))
+
+
+
+
+withoutgg <- grantslistall %>%
+  filter(Year >= 2017) %>%
+  filter(type != "GrantTotal") %>%
+      filter(Master.Fund != "GG") %>%
+  ggplot(aes(x=Year, y=Amount, fill = Master.Fund)) +
+  geom_bar(stat="identity")  +
+  scale_fill_manual("Fund", values = c("GG" = "#5445b1", "WF" = "#749dae", "SO" = "#5c1a33", "UROEAP" ="#f7dc6a", "LAND" = "#465952")) +
+  theme_minimal() +
+    theme(axis.line = element_line(colour = "black"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank()) +
+      xlab("") +
+        ylab("") +
+    scale_y_continuous(labels=scales::dollar_format()) +
+  theme(legend.position = "none") + 
+    ggtitle(label = " Non-GG") + 
+     theme(plot.title = element_text(color = "#5c1a33", size = 14, face = "bold",hjust = 0.5))
+
+```
+
+
+:::::: {style="display: flex;"}
+
+::: {}
+
+
+```{r echo=FALSE}
+
+grantslistallcurrentsumgraph
+```
+
+:::
+
+::: {}
+
+
+
+
+
+
+:::
+
+
+::: {}
+
+```{r echo=FALSE}
+grantslistallcurrenttotalgraph
+```
+
+
+
+:::
+
+::::
+
+<br><br>
+<br><br>
+<br><br>
+\newpage
+
+## Comparison by Year
+
+:::::: {style="display: flex;"}
+
+::: {}
+
+```{r echo=FALSE, fig.width=8,fig.height=6}
+grantsnewerchart
+```
+:::
+
+::: {}
+
+
+
+```{r echo=FALSE, fig.width=6, fig.height=6}
+withoutgg 
+```
+:::
+
+::::
+\newpage
+
+# All Grants Prior to 2016
+
+
+
+
+```{r include=FALSE}
+grantslist <- Summary
+names(grantslist) <- str_replace_all(names(grantslist), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+
+amountspent1 <- Budgets %>%
+  mutate(Amount = gsub("\\,", "", Amount)) %>%
+  mutate(Amount = as.numeric(Amount))
+names(amountspent1) <- str_replace_all(names(amountspent1), c(" " = "." , "[+]" = "Plus", "[()]" = "."))
+amountspent1 <- amountspent1 %>%
+  mutate(Amount = as.numeric(Amount)) %>%
+  mutate(Year = year(End.Date)) %>%
+  group_by(Fund, App) %>%
+    summarise(Amount = sum(Amount)) %>%
+  mutate(type = "GrantTotal")
+  
+  
+grantslistall <- grantslist %>% 
+  mutate(type = "Breakdown") %>%
+  merge(amountspent1, all = TRUE) %>%
+  merge(appyear, all.x = TRUE)
+
+
+grantslistallcurrent <- grantslistall %>%
+  filter(Year  >= 2016 & type == "GrantTotal")
+
+grantslistallcurrentsum <- grantslistallcurrent %>%
+  select(Year, App, Fund, Amount) %>%
+  arrange(Year, Fund)
+  
+grantslistallcurrenttotal <- grantslistallcurrent %>%
+  group_by(Year) %>%
+  summarise(Amount = sum(Amount))
+
+grantslistallold  <- grantslistall %>%
+  filter(Year <= 2016 & type == "GrantTotal") 
+
+grantslistalloldsum <- grantslistallold %>%
+  select(Year, App, Fund, Amount) %>%
+    arrange(Year, Fund)
+
+
+grantslistalloldtotal <- grantslistallold %>%
+  group_by(Year) %>%
+  summarise(Amount = sum(Amount))
+
+grantslistalloldsumgraph <- gt(grantslistalloldsum) %>%
+  cols_label(Year = "Year", App = "App Number", Fund = "Fund", Amount = "Grant Amount")  %>%
+  tab_header(title = "All Grants Details")  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Year)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#5445b1", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Year, App, Fund, Amount))) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_currency(columns = c(Amount))
+
+
+grantslistalloldtotalgraph <- gt(grantslistalloldtotal) %>%
+  cols_label(Year = "Year", Amount = "Grant Amount")  %>%
+  tab_header(title = "By Year")  %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())),
+    locations = cells_title()
+  ) %>%
+   tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .25), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .35), 
+      cell_text( google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_body(
+      columns = c(Year)
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#f3c483", alpha = .75), 
+      cell_text(weight = "bold", google_font(name = "Source Sans Pro"),
+        default_fonts())), 
+    locations = cells_column_labels(columns = c(Year, Amount))) %>%
+  fmt_missing(everything(), missing_text = "  ") %>%
+    fmt_currency(columns = c(Amount))
+
+library(ggplot2)
+grantsolder <- grantslistall %>%
+  filter(Year <= 2017) %>%
+  filter(type != "GrantTotal")
+grantsolderchart <- grantsolder %>%
+  ggplot(aes(x=Year, y=Amount, fill = Master.Fund)) +
+  geom_bar(stat="identity")
+
+```
+
+
+
+
+:::::: {style="display: flex;"}
+
+::: {}
+```{r echo=FALSE}
+grantslistalloldsumgraph
+```
+
+:::
+
+::: {}
+
+
+
+
+:::
+
+::: {}
+
+```{r echo=FALSE}
+grantslistalloldtotalgraph
+```
+
+
+:::
+
+::::
+
+
+<br>
+
+
